@@ -1,0 +1,37 @@
+# Core API
+fastapi
+uvicorn[standard]
+gunicorn
+python-dotenv
+python-multipart
+slowapi
+email-validator
+
+# Database
+motor
+beanie
+pymongo
+
+# AI / ML Services
+google-generativeai
+openai
+faster-whisper
+vosk
+
+# Audio Processing
+pydub
+requests
+
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Utilities
+aiofiles
+pydantic
+pydantic-settings
+typing-extensions
+
+# Platform Specific
+python-magic; sys_platform != 'win32'
+python-magic-bin; sys_platform == 'win32'
