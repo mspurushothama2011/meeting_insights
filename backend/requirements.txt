@@ -24,7 +24,7 @@ requests
 audioop-lts
 
 # Security
-python-jose[cryptography]
+PyJWT
 passlib[bcrypt]
 
 # Utilities
