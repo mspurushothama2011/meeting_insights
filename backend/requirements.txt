@@ -15,8 +15,7 @@ pymongo
 # AI / ML Services
 google-generativeai
 openai
-faster-whisper
-vosk
+
 
 # Audio Processing
 pydub
