@@ -94,9 +94,8 @@ class Config:
         elif self.ENVIRONMENT == "production":
             # Production: Only allow specific domains
             self.CORS_ORIGINS = [
-                # Add your production domains here
-                # "https://yourdomain.com",
-                # "https://www.yourdomain.com"
+                "https://meeting-insights-frontend.vercel.app",
+                "https://meeting-insights-frontend-purushothama-m-ss-projects.vercel.app"
             ]
         else:
             # Development: Allow common local ports
