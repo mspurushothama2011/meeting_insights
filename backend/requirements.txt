@@ -21,6 +21,7 @@ vosk
 # Audio Processing
 pydub
 requests
+pyaudioop
 
 # Security
 python-jose[cryptography]
