@@ -31,7 +31,7 @@ class NLPAnalyzer:
         # Initialize Gemini client
         self.gemini_client = None
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
-        self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')
+        self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-1.5-flash-001')
         
         if self.openai_api_key:
             try:
@@ -106,10 +106,26 @@ class NLPAnalyzer:
             return error_msg
 
     def _summarize_gemini(self, text: str, target_words: int = 150) -> str:
-        """Summarize using Google Gemini."""
+        """Summarize using Google Gemini with retry logic."""
         prompt = f"Summarize the following meeting transcript in EXACTLY {target_words} words or less. Be specific, capture key decisions and action items.\n\nTranscript:\n{text}"
-        response = self.gemini_client.generate_content(prompt)
-        return response.text.strip()
+        
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                response = self.gemini_client.generate_content(prompt)
+                return response.text.strip()
+            except Exception as e:
+                is_rate_limit = "429" in str(e) or "quota" in str(e).lower()
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(f"Summarization rate limit. Retrying in {wait_time}s...")
+                    import time
+                    time.sleep(wait_time)
+                else:
+                    raise e
+        return ""
 
     def _summarize_openai(self, text: str, target_words: int = 150) -> str:
         """Summarize using OpenAI with chunking + synthesis."""
@@ -189,19 +205,38 @@ class NLPAnalyzer:
         }}
         """
         
-        response = self.gemini_client.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-        try:
-            result = json.loads(response.text)
-            validated_result = self._validate_and_enhance_extraction(result, text, attendees)
-            validated_result['metadata'] = {
-                'method': 'gemini',
-                'model': self.gemini_model,
-                'extraction_time': (datetime.now() - start_time).total_seconds()
-            }
-            return validated_result
-        except Exception as e:
-            print(f"Failed to parse Gemini JSON: {e}")
-            raise
+        max_retries = 3
+        retry_delay = 2
+        
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                response = self.gemini_client.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                result = json.loads(response.text)
+                validated_result = self._validate_and_enhance_extraction(result, text, attendees)
+                validated_result['metadata'] = {
+                    'method': 'gemini',
+                    'model': self.gemini_model,
+                    'extraction_time': (datetime.now() - start_time).total_seconds()
+                }
+                return validated_result
+            except Exception as e:
+                last_error = e
+                is_rate_limit = "429" in str(e) or "quota" in str(e).lower()
+                if is_rate_limit and attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(f"Extraction rate limit. Retrying in {wait_time}s...")
+                    import time
+                    time.sleep(wait_time)
+                else:
+                    # Break immediately for non-rate-limit errors or final attempt
+                    if not is_rate_limit:
+                        print(f"Failed to parse Gemini JSON or other error: {e}")
+                        break
+        
+        if last_error:
+            raise last_error
+        return {}
 
     def _extract_action_items_rule_based(self, text: str) -> List[Dict[str, Any]]:
         """Extract action items from text using rule-based patterns (fallback method)."""

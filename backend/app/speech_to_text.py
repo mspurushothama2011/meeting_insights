@@ -9,8 +9,10 @@ class SpeechToText:
     Falls back to simple local mock if API key is missing.
     """
 
-    def __init__(self, model_name: str = "gemini-1.5-flash", vosk_model_path: str = None, cache_dir: str = None):
-        self.model_name = model_name
+    def __init__(self, model_name: str = None, vosk_model_path: str = None, cache_dir: str = None):
+        # Allow env var to override default if model_name not explicitly passed
+        # Use 001 stable version to avoid 404s
+        self.model_name = model_name or os.getenv('GEMINI_MODEL', "gemini-1.5-flash-001")
         self.api_key = os.getenv('GEMINI_API_KEY')
         
         if self.api_key:
@@ -31,7 +33,10 @@ class SpeechToText:
             return self._transcribe_mock(wav_path)
 
     def _transcribe_gemini(self, wav_path: str) -> Dict:
-        """Uploads audio to Gemini and requests transcription."""
+        """Uploads audio to Gemini and requests transcription with retry logic."""
+        max_retries = 3
+        retry_delay = 2
+        
         try:
             # 1. Upload the file
             print(f"Uploading {wav_path} to Gemini...")
@@ -46,22 +51,33 @@ class SpeechToText:
             if audio_file.state.name == "FAILED":
                 raise ValueError("Audio processing failed on Gemini side.")
 
-            # 3. Generate content (Transcribe)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content([
-                "Transcribe this audio file exactly as spoken. Do not add any commentary. Output only the text.",
-                audio_file
-            ])
+            # 3. Generate content (Transcribe) with retry
+            model = genai.GenerativeModel(self.model_name)
             
-            text = response.text.strip()
-            
-            # 4. Cleanup (optional, but good practice)
-            # genai.delete_file(audio_file.name) 
-            
-            return {
-                'text': text,
-                'segments': [] # Gemini 1.5 Flash doesn't return timestamps easily in this mode
-            }
+            for attempt in range(max_retries):
+                try:
+                    response = model.generate_content([
+                        "Transcribe this audio file exactly as spoken. Do not add any commentary. Output only the text.",
+                        audio_file
+                    ])
+                    text = response.text.strip()
+                    
+                    # 4. Cleanup (optional, but good practice)
+                    # genai.delete_file(audio_file.name) 
+                    
+                    return {
+                        'text': text,
+                        'segments': [] # Timestamps not easily available in this mode
+                    }
+                    
+                except Exception as e:
+                    is_rate_limit = "429" in str(e) or "quota" in str(e).lower()
+                    if is_rate_limit and attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                        print(f"⚠️ Rate limit hit. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                    else:
+                        raise e
 
         except Exception as e:
             print(f"Gemini Transcription Error: {e}")

@@ -30,11 +30,9 @@ const Layout = ({ children, hideFooter = false }) => {
       <header className="sticky top-0 z-50 glass-panel border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3 group cursor-pointer">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:scale-105 transition-transform duration-300">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+            <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-10 h-10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <img src="/logo.png" alt="IMIP Logo" className="w-full h-full object-contain filter drop-shadow-lg" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gradient bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
@@ -136,10 +134,8 @@ const Layout = ({ children, hideFooter = false }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <img src="/logo.png" alt="IMIP" className="w-full h-full object-contain opacity-80" />
                 </div>
                 <p className="text-sm text-gray-400">
                   © 2025 IMIP. <span className="opacity-50">Powered by Advanced AI.</span>
